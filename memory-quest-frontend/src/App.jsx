@@ -3,13 +3,14 @@ import React from "react";
 import TopBar from "./components/TopBar";
 import DecksView from "./components/DecksView";
 import AuthModal from "./components/AuthModal";
-import { loginUser, registerUser, fetchDecks, createDeck } from "./api";
+import { loginUser, registerUser, fetchDecks, createDeck, fetchProfile } from "./api";
 import DeckDetailView from "./components/DeckDetailView";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 export default function App() {
     const [token, setToken] = useState(localStorage.getItem("token") || "");
     const [authOk, setAuthOk] = useState(false);
+    const [userId, setUserId] = useState(null);
     const [decks, setDecks] = useState([]);
     const [msg, setMsg] = useState("");
 
@@ -44,6 +45,17 @@ export default function App() {
         if (!token) return;
         setMsg("");
         loadDecks(token);
+    }, [token]);
+
+    useEffect(() => {
+        if (!token) {
+            setUserId(null);
+            return;
+        }
+        // Who am I? Needed for ownership-only UI (e.g. delete card)
+        fetchProfile(token)
+            .then((p) => setUserId(p?.user_id ?? p?.userId ?? null))
+            .catch(() => setUserId(null));
     }, [token]);
 
     async function login(e) {
@@ -98,6 +110,7 @@ export default function App() {
                 onLogout={() => {
                     localStorage.removeItem("token");
                     setToken("");
+                    setUserId(null);
                     setDecks([]);
                     setAuthOk(false);
                 }}
@@ -119,7 +132,7 @@ export default function App() {
                         />
                     }
                 />
-                <Route path="/decks/:deckId" element={<DeckDetailView token={token} />} />
+                <Route path="/decks/:deckId" element={<DeckDetailView token={token} userId={userId} />} />
             </Routes>
 
             <AuthModal

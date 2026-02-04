@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { fetchDeck, fetchCards, createCard } from "../api";
+import { fetchDeck, fetchCards, createCard, deleteCard } from "../api";
 import CardViewerModal from "./CardViewModal";
 import React from "react";
 
-export default function DeckDetailView({ token }) {
+export default function DeckDetailView({ token, userId }) {
     const { deckId } = useParams();
 
     const [deck, setDeck] = useState(null);
@@ -57,8 +57,31 @@ export default function DeckDetailView({ token }) {
     const card = { background: "#1e1e1e", padding: 14, borderRadius: 10, border: "1px solid #2a2a2a" };
     const input = { width: "100%", padding: 12, boxSizing: "border-box", borderRadius: 8, border: "1px solid #333", background: "#111", color: "#fff" };
     const btn = { padding: "10px 12px", cursor: "pointer", background: "#2a2a2a", color: "#fff", border: "1px solid #333", borderRadius: 8 };
+    const dangerBtn = { padding: "8px 10px", cursor: "pointer", background: "#991b1b", color: "#fff", border: "1px solid #7f1d1d", borderRadius: 8 };
 
     const deckTitle = deck ? (deck.title ?? deck.Title ?? `Deck #${deckId}`) : `Deck #${deckId}`;
+    const deckOwnerId = deck ? (deck.user_id ?? deck.userId ?? deck.UserID ?? deck.UserId) : null;
+    const isOwner = userId != null && deckOwnerId != null && String(userId) === String(deckOwnerId);
+
+    async function onDeleteCard(e, cardId) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!token) return;
+        if (!isOwner) {
+            setMsg("You can only delete cards from your own deck.");
+            return;
+        }
+        if (!window.confirm("Delete this card?")) return;
+
+        try {
+            setMsg("Deleting card...");
+            await deleteCard(token, deckId, cardId);
+            setCards((prev) => prev.filter((c) => String(c.id ?? c.ID) !== String(cardId)));
+            setMsg("✅ Card deleted");
+        } catch (err) {
+            setMsg("Delete failed: " + (err?.message || String(err)));
+        }
+    }
 
     return (
         <div style={{ display: "grid", gap: 12 }}>
@@ -129,8 +152,20 @@ export default function DeckDetailView({ token }) {
                                     }}
                                     title="Click to open reading mode from here"
                                 >
-                                    <div><b>Q:</b> {q}</div>
-                                    <div style={{ opacity: 0.9, marginBottom: 40 }}></div>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                                        <div style={{ flex: 1 }}><b>Q:</b> {q}</div>
+                                        {isOwner && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => onDeleteCard(e, id)}
+                                                style={dangerBtn}
+                                                title="Delete card"
+                                            >
+                                                🗑 Delete
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div style={{ opacity: 0.9, marginBottom: 40 }} />
                                 </li>
                             );
                         })}
