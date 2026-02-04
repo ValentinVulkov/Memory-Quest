@@ -9,10 +9,12 @@ import (
 )
 
 func CreateCard(c *gin.Context) {
+
 	userID := c.MustGet("user_id").(uint)
 	deckID := c.Param("id")
 
 	var deck models.Deck
+
 	if err := db.DB.First(&deck, deckID).Error; err != nil {
 		c.JSON(404, gin.H{"error": "Deck not found"})
 		return

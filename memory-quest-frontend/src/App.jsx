@@ -1,90 +1,62 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-
+import React from "react";
 import TopBar from "./components/TopBar";
 import DecksView from "./components/DecksView";
 import AuthModal from "./components/AuthModal";
 import { loginUser, registerUser, fetchDecks, createDeck } from "./api";
 import DeckDetailView from "./components/DeckDetailView";
-
-function RequireAuth({ token, children }) {
-    if (!token) return <Navigate to="/login" replace />;
-    return children;
-}
+import { Routes, Route, Navigate } from "react-router-dom";
 
 export default function App() {
-    const navigate = useNavigate();
-
     const [token, setToken] = useState(localStorage.getItem("token") || "");
     const [authOk, setAuthOk] = useState(false);
     const [decks, setDecks] = useState([]);
     const [msg, setMsg] = useState("");
 
-    // auth inputs
+    const [authOpen, setAuthOpen] = useState(false);
     const [mode, setMode] = useState("login");
+
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("v@v.com");
     const [password, setPassword] = useState("123456");
     const [showPassword, setShowPassword] = useState(false);
 
-    // deck creation inputs
     const [deckTitle, setDeckTitle] = useState("");
     const [deckDescription, setDeckDescription] = useState("");
 
-    // Load decks when token changes
     useEffect(() => {
-        let cancelled = false;
+        if (!token) setAuthOpen(true);
+    }, [token]);
 
-        async function run() {
+    async function loadDecks(t) {
+        try {
+            const d = await fetchDecks(t);
+            setDecks(Array.isArray(d) ? d : []);
+            setAuthOk(true);
+        } catch (e) {
             setAuthOk(false);
             setDecks([]);
-
-            if (!token) return;
-
-            try {
-                const data = await fetchDecks(token);
-
-                // normalize shape
-                let list = [];
-                if (Array.isArray(data)) list = data;
-                else if (Array.isArray(data.decks)) list = data.decks;
-                else if (Array.isArray(data.data)) list = data.data;
-
-                if (cancelled) return;
-                setDecks(list);
-                setAuthOk(true);
-            } catch (e) {
-                if (cancelled) return;
-                setAuthOk(false);
-                setDecks([]);
-                setMsg("Deck load failed: " + (e?.message || String(e)));
-            }
+            setMsg("Deck load failed: " + (e?.message || String(e)));
         }
+    }
 
-        run();
-        return () => {
-            cancelled = true;
-        };
+    useEffect(() => {
+        if (!token) return;
+        setMsg("");
+        loadDecks(token);
     }, [token]);
 
     async function login(e) {
         e.preventDefault();
-        setMsg("Logging in...");
-
+        setMsg("");
         try {
             const data = await loginUser(email, password);
-            const t = data.token || data.access_token || data.jwt || data.Token;
-
-            if (!t || typeof t !== "string") {
-                setMsg("Login succeeded but token field is missing in response.");
-                console.log("login response:", data);
-                return;
-            }
-
+            const t = data.token;
+            if (!t) throw new Error("No token returned");
             localStorage.setItem("token", t);
             setToken(t);
-            setMsg("");
-            navigate("/decks", { replace: true });
+            setAuthOpen(false);
+            setAuthOk(false);
         } catch (e) {
             setMsg("Login failed: " + (e?.message || String(e)));
         }
@@ -92,12 +64,11 @@ export default function App() {
 
     async function register(e) {
         e.preventDefault();
-        setMsg("Registering...");
-
+        setMsg("");
         try {
             await registerUser(username, email, password);
             setMode("login");
-            setMsg("✅ Registered. Now log in.");
+            setMsg("✅ Registered. Now login.");
         } catch (e) {
             setMsg("Register failed: " + (e?.message || String(e)));
         }
@@ -107,155 +78,73 @@ export default function App() {
         e.preventDefault();
         if (!token) return;
 
-        const title = deckTitle.trim();
-        const description = deckDescription.trim();
-
-        if (!title) {
-            setMsg("Deck title is required.");
-            return;
-        }
-
-        setMsg("Creating deck...");
-
+        setMsg("");
         try {
-            await createDeck(token, title, description);
+            await createDeck(token, deckTitle, deckDescription);
             setDeckTitle("");
             setDeckDescription("");
+            await loadDecks(token);
             setMsg("✅ Deck created");
-
-            const data = await fetchDecks(token);
-            let list = [];
-            if (Array.isArray(data)) list = data;
-            else if (Array.isArray(data.decks)) list = data.decks;
-            else if (Array.isArray(data.data)) list = data.data;
-
-            setDecks(list);
-            setAuthOk(true);
         } catch (e) {
             setMsg("Create deck failed: " + (e?.message || String(e)));
         }
     }
 
-    function logout() {
-        localStorage.removeItem("token");
-        setToken("");
-        setAuthOk(false);
-        setDecks([]);
-        setMsg("Logged out");
-        navigate("/login", { replace: true });
-    }
-
     return (
-        <div
-            style={{
-                minHeight: "100vh",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                background: "#0d0d0d",
-                color: "#fff",
-                padding: 16,
-                boxSizing: "border-box",
-            }}
-        >
-            <div
-                style={{
-                    width: "100%",
-                    maxWidth: 900,
-                }}
-            >
-        <div
-            style={{
-                minHeight: "100vh",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "#0d0d0d",
-                color: "#fff",
-                padding: 16,
-                boxSizing: "border-box",
-            }}
-        >
-            <div
-                style={{
-                    width: "100%",
-                    maxWidth: 900,
-                }}
-            >
+        <div style={{ maxWidth: 900, margin: "40px auto" }}>
             <TopBar
                 token={token}
-                onOpenAuth={() => navigate("/login")}
-                onLogout={logout}
+                onOpenAuth={() => setAuthOpen(true)}
+                onLogout={() => {
+                    localStorage.removeItem("token");
+                    setToken("");
+                    setDecks([]);
+                    setAuthOk(false);
+                }}
             />
-
             <Routes>
                 <Route path="/" element={<Navigate to="/decks" replace />} />
-
                 <Route
                     path="/decks"
                     element={
-                        <RequireAuth token={token}>
-                            <>
-                                <DecksView
-                                    token={token}
-                                    authOk={authOk}
-                                    decks={decks}
-                                    deckTitle={deckTitle}
-                                    setDeckTitle={setDeckTitle}
-                                    deckDescription={deckDescription}
-                                    setDeckDescription={setDeckDescription}
-                                    onCreateDeck={addDeck}
-                                />
-                                {msg && (
-                                    <pre style={{ marginTop: 12, background: "#000000", padding: 12, borderRadius: 8, whiteSpace: "pre-wrap" }}>
-                    {msg}
-                  </pre>
-                                )}
-                            </>
-                        </RequireAuth>
-                    }
-                />
-
-                {/* login "page" implemented as modal */}
-                <Route
-                    path="/login"
-                    element={
-                        <AuthModal
-                            open={true}
+                        <DecksView
                             token={token}
-                            mode={mode}
-                            setMode={setMode}
-                            username={username}
-                            setUsername={setUsername}
-                            email={email}
-                            setEmail={setEmail}
-                            password={password}
-                            setPassword={setPassword}
-                            showPassword={showPassword}
-                            setShowPassword={setShowPassword}
-                            onLogin={login}
-                            onRegister={register}
-                            onClose={() => {
-                                // If logged in, close goes back to decks, otherwise keep user on login
-                                if (token) navigate("/decks");
-                            }}
+                            authOk={authOk}
+                            decks={decks}
+                            deckTitle={deckTitle}
+                            setDeckTitle={setDeckTitle}
+                            deckDescription={deckDescription}
+                            setDeckDescription={setDeckDescription}
+                            onCreateDeck={addDeck}
                         />
                     }
                 />
-
-                <Route path="*" element={<Navigate to="/decks" replace />} />
-                <Route
-                    path="/decks/:deckId"
-                    element={
-                        <RequireAuth token={token}>
-                            <DeckDetailView token={token} />
-                        </RequireAuth>
-                    }
-                />
+                <Route path="/decks/:deckId" element={<DeckDetailView token={token} />} />
             </Routes>
-        </div>
-        </div>
-            </div>
+
+            <AuthModal
+                open={authOpen}
+                token={token}
+                mode={mode}
+                setMode={setMode}
+                username={username}
+                setUsername={setUsername}
+                email={email}
+                setEmail={setEmail}
+                password={password}
+                setPassword={setPassword}
+                showPassword={showPassword}
+                setShowPassword={setShowPassword}
+                onLogin={login}
+                onRegister={register}
+                onClose={() => setAuthOpen(false)}
+            />
+
+            {msg && (
+                <pre style={{ marginTop: 12, background: "#000", color: "#fff", padding: 12, borderRadius: 8 }}>
+          {msg}
+        </pre>
+            )}
         </div>
     );
 }

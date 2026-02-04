@@ -94,10 +94,12 @@ func UpdateDeck(c *gin.Context) {
 }
 
 func DeleteDeck(c *gin.Context) {
+
 	userID := c.MustGet("user_id").(uint)
 	id := c.Param("id")
 
 	var deck models.Deck
+
 	if err := db.DB.Preload("Cards").First(&deck, id).Error; err != nil {
 		c.JSON(404, gin.H{"error": "Deck not found"})
 		return
