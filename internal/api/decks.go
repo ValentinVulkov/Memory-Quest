@@ -46,11 +46,18 @@ func GetAllDecks(c *gin.Context) {
 }
 
 func GetDeck(c *gin.Context) {
+	userID := c.MustGet("user_id").(uint)
 	id := c.Param("id")
 
 	var deck models.Deck
 	if err := db.DB.Preload("Cards").First(&deck, id).Error; err != nil {
 		c.JSON(404, gin.H{"error": "Deck not found"})
+		return
+	}
+
+	// Privacy: only owner can view private decks
+	if !deck.IsPublic && deck.UserID != userID {
+		c.JSON(403, gin.H{"error": "Unauthorized"})
 		return
 	}
 	c.JSON(200, deck)
@@ -119,6 +126,17 @@ func GetMyDecks(c *gin.Context) {
 
 	var decks []models.Deck
 	db.DB.Where("user_id = ?", userID).Find(&decks)
+
+	c.JSON(200, decks)
+}
+
+func GetPublicDecks(c *gin.Context) {
+	var decks []models.Deck
+
+	if err := db.DB.Where("is_public = ?", true).Find(&decks).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to fetch public decks"})
+		return
+	}
 
 	c.JSON(200, decks)
 }

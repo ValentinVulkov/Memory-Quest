@@ -3,31 +3,16 @@ import React from "react";
 import TopBar from "./components/TopBar";
 import DecksView from "./components/DecksView";
 import AuthModal from "./components/AuthModal";
-import { loginUser, registerUser, fetchDecks, createDeck } from "./api";
+import { loginUser, registerUser, fetchDecks, fetchPublicDecks, createDeck } from "./api";
 import DeckDetailView from "./components/DeckDetailView";
 import { Routes, Route, Navigate } from "react-router-dom";
-
-
-function decodeJwtPayload(token) {
-    try {
-        const parts = String(token || "").split(".");
-        if (parts.length < 2) return null;
-        const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-        const padded = base64 + "===".slice((base64.length + 3) % 4);
-        const json = atob(padded);
-        return JSON.parse(json);
-    } catch {
-        return null;
-    }
-}
 
 export default function App() {
     const [token, setToken] = useState(localStorage.getItem("token") || "");
     const [authOk, setAuthOk] = useState(false);
     const [decks, setDecks] = useState([]);
+    const [publicDecks, setPublicDecks] = useState([]);
     const [msg, setMsg] = useState("");
-
-    const userId = decodeJwtPayload(token)?.user_id ?? null;
 
     const [authOpen, setAuthOpen] = useState(false);
     const [mode, setMode] = useState("login");
@@ -39,7 +24,6 @@ export default function App() {
 
     const [deckTitle, setDeckTitle] = useState("");
     const [deckDescription, setDeckDescription] = useState("");
-    const [deckIsPublic, setDeckIsPublic] = useState(false);
 
     useEffect(() => {
         if (!token) setAuthOpen(true);
@@ -57,11 +41,26 @@ export default function App() {
         }
     }
 
+    async function loadPublicDecks() {
+        try {
+            const d = await fetchPublicDecks();
+            setPublicDecks(Array.isArray(d) ? d : []);
+        } catch (e) {
+            // Public decks are non-critical; keep UI alive
+            setPublicDecks([]);
+        }
+    }
+
     useEffect(() => {
         if (!token) return;
         setMsg("");
         loadDecks(token);
     }, [token]);
+
+    // Load public decks even if user isn't logged in
+    useEffect(() => {
+        loadPublicDecks();
+    }, []);
 
     async function login(e) {
         e.preventDefault();
@@ -97,10 +96,9 @@ export default function App() {
 
         setMsg("");
         try {
-            await createDeck(token, deckTitle, deckDescription, deckIsPublic);
+            await createDeck(token, deckTitle, deckDescription);
             setDeckTitle("");
             setDeckDescription("");
-            setDeckIsPublic(false);
             await loadDecks(token);
             setMsg("✅ Deck created");
         } catch (e) {
@@ -129,17 +127,16 @@ export default function App() {
                             token={token}
                             authOk={authOk}
                             decks={decks}
+                            publicDecks={publicDecks}
                             deckTitle={deckTitle}
                             setDeckTitle={setDeckTitle}
                             deckDescription={deckDescription}
                             setDeckDescription={setDeckDescription}
-                            deckIsPublic={deckIsPublic}
-                            setDeckIsPublic={setDeckIsPublic}
                             onCreateDeck={addDeck}
                         />
                     }
                 />
-                <Route path="/decks/:deckId" element={<DeckDetailView token={token} userId={userId} />} />
+                <Route path="/decks/:deckId" element={<DeckDetailView token={token} />} />
             </Routes>
 
             <AuthModal

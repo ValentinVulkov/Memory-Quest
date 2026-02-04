@@ -30,6 +30,13 @@ export async function fetchDecks(token) {
     return res.json();
 }
 
+// Public decks (no auth)
+export async function fetchPublicDecks() {
+    const res = await fetch(`${API}/api/decks/public`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
 export async function fetchDeck(token, id) {
     const res = await fetch(`${API}/api/decks/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -46,27 +53,14 @@ export async function fetchCards(token, deckId) {
     return res.json();
 }
 
-export async function createDeck(token, title, description, is_public) {
+export async function createDeck(token, title, description) {
     const res = await fetch(`${API}/api/decks`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ title, description, is_public: !!is_public }),
-    });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-}
-
-export async function updateDeck(token, deckId, title, description, is_public) {
-    const res = await fetch(`${API}/api/decks/${deckId}`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title, description, is_public: !!is_public }),
+        body: JSON.stringify({ title, description }),
     });
     if (!res.ok) throw new Error(await res.text());
     return res.json();
@@ -83,4 +77,22 @@ export async function createCard(token, deckId, question, answer) {
     });
     if (!res.ok) throw new Error(await res.text());
     return res.json();
+}
+
+export async function updateDeck(token, deckId, payload) {
+    const res = await fetch(`http://localhost:8080/api/decks/${deckId}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`updateDeck failed: ${res.status} ${text}`);
+    }
+
+    return res.json().catch(() => ({}));
 }
