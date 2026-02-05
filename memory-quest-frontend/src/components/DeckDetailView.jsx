@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { fetchDeck, fetchCards, createCard, updateDeck, fetchPublicDeck, fetchPublicCards } from "../api";
+import QuizModal from "./QuizModal";
+import { startQuiz } from "../api";
+import { deleteCard } from "../api";
 
 import CardViewerModal from "./CardViewModal";
 import React from "react";
@@ -18,6 +21,9 @@ export default function DeckDetailView({ token, userId }) {
     // Viewing mode (read cards one-by-one)
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerStartIndex, setViewerStartIndex] = useState(0);
+
+    const [quizOpen, setQuizOpen] = useState(false);
+    const [quizData, setQuizData] = useState(null);
 
     async function load() {
         const deckData = await fetchDeck(token, deckId);
@@ -90,6 +96,32 @@ export default function DeckDetailView({ token, userId }) {
     const isPublic = !!(deck?.is_public ?? deck?.IsPublic ?? false);
 
 
+    //Calculate Unique answers to know if a quiz is possible
+    const uniqueAnswers = new Set(
+        cards.map(c => c.answer ?? c.Answer ?? "")
+    ).size;
+
+    const canStartQuiz = cards.length >= 4 && uniqueAnswers >= 4;
+
+    let quizDisabledReason = "";
+    if (cards.length < 4) {
+        quizDisabledReason = "Need at least 4 cards to start a quiz";
+    } else if (uniqueAnswers < 4) {
+        quizDisabledReason = "Need at least 4 different answers to build quiz options";
+    }
+
+    async function onDeleteCard(cardId) {
+        if (!window.confirm("Delete this card?")) return;
+
+        try {
+            await deleteCard(token, deckId, cardId);
+            setCards((prev) => prev.filter(c => Number(c.id ?? c.ID) !== Number(cardId)));
+        } catch (e) {
+            setMsg("Delete failed: " + (e?.message || String(e)));
+        }
+    }
+
+
     return (
 
         <div style={{ display: "grid", gap: 12 }}>
@@ -143,6 +175,8 @@ export default function DeckDetailView({ token, userId }) {
                 </div>
 
                 <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap", marginBottom: -15 }}>
+
+                    {/* View mode */}
                     <button
                         type="button"
                         onClick={() => { setViewerStartIndex(0); setViewerOpen(true); }}
@@ -161,6 +195,39 @@ export default function DeckDetailView({ token, userId }) {
                         }}
                     >
                         View
+                    </button>
+
+                    {/* Start Quiz */}
+                    <button
+                        type="button"
+                        disabled={!canStartQuiz}
+                        title={!canStartQuiz ? quizDisabledReason : "Start quiz"}
+                        onClick={async () => {
+                            try {
+                                setMsg("");
+                                const data = await startQuiz(token, deckId);
+                                setQuizData(data);
+                                setQuizOpen(true);
+                            } catch (e) {
+                                setMsg("Start quiz failed: " + (e?.message || String(e)));
+                            }
+                        }}
+
+                        style={{
+                            padding: "24px 56px",
+                            fontSize: "18px",
+                            fontWeight: "bold",
+                            borderRadius: "10px",
+                            background: canStartQuiz ? "#16a34a" : "#444",
+                            color: "white",
+                            border: "none",
+                            cursor: canStartQuiz ? "pointer" : "not-allowed",
+                            boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+                            marginBottom: "15px",
+                            opacity: canStartQuiz ? 1 : 0.6
+                        }}
+                    >
+                        Start Quiz
                     </button>
 
                 </div>
@@ -198,15 +265,41 @@ export default function DeckDetailView({ token, userId }) {
                             return (
                                 <li
                                     key={`${id}-${i}`}
-                                    style={{ marginBottom: 10, cursor: "pointer" }}
-                                    onClick={() => {
-                                        setViewerStartIndex(i);
-                                        setViewerOpen(true);
+                                    style={{
+                                        marginBottom: 40,
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        gap: 10
                                     }}
                                     title="Click to open reading mode from here"
                                 >
-                                    <div><b>Q:</b> {q}</div>
-                                    <div style={{ opacity: 0.9, marginBottom: 40 }}></div>
+                                    <div
+                                        onClick={() => {
+                                            setViewerStartIndex(i);
+                                            setViewerOpen(true);
+                                        }}
+                                        style={{ flex: 1 }}
+                                    >
+                                        <div><b>Q:</b> {q}</div>
+                                    </div>
+
+                                    {isOwner && (
+                                        <button
+                                            onClick={() => onDeleteCard(id)}
+                                            style={{
+                                                padding: "8px 12px",
+                                                background: "#7f1d1d",
+                                                border: "1px solid #ef4444",
+                                                color: "#fff",
+                                                borderRadius: 8,
+                                                cursor: "pointer",
+                                            }}
+                                        >
+                                            🗑️
+                                        </button>
+                                    )}
                                 </li>
                             );
                         })}
@@ -219,6 +312,15 @@ export default function DeckDetailView({ token, userId }) {
                 cards={cards}
                 startIndex={viewerStartIndex}
                 onClose={() => setViewerOpen(false)}
+            />
+
+            <QuizModal
+                open={quizOpen}
+                token={token}
+                quiz={quizData}
+                cards={cards}
+                deckTitle={deckTitle}
+                onClose={() => setQuizOpen(false)}
             />
 
             {msg && <pre style={{ ...card, whiteSpace: "pre-wrap", margin: 0 }}>{msg}</pre>}

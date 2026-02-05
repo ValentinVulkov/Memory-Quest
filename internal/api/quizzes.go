@@ -28,6 +28,7 @@ type StartQuizResponse struct {
 }
 
 func StartQuiz(c *gin.Context) {
+
 	deckID := c.Param("id")
 	userID := c.MustGet("user_id").(uint)
 
@@ -51,8 +52,12 @@ func StartQuiz(c *gin.Context) {
 		return
 	}
 
-	if len(cards) < 4 {
-		c.JSON(400, gin.H{"error": "Need at least 4 cards to start quiz"})
+	unique := map[string]bool{}
+	for _, card := range cards {
+		unique[card.Answer] = true
+	}
+	if len(unique) < 4 {
+		c.JSON(400, gin.H{"error": "Need at least 4 unique answers to start quiz"})
 		return
 	}
 
@@ -64,6 +69,7 @@ func StartQuiz(c *gin.Context) {
 
 	// Create quiz
 	quiz := models.Quiz{
+		UserID:    userID,
 		DeckID:    deck.ID,
 		Title:     "Quiz: " + deck.Title,
 		CreatedAt: time.Now(),
@@ -88,8 +94,6 @@ func StartQuiz(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Failed to create quiz result"})
 		return
 	}
-
-	db.DB.Create(&result)
 
 	questions := make([]QuizQuestionDTO, 0, len(cards))
 

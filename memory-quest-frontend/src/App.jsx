@@ -6,6 +6,7 @@ import AuthModal from "./components/AuthModal";
 import { loginUser, registerUser, fetchDecks, fetchPublicDecks, createDeck } from "./api";
 import DeckDetailView from "./components/DeckDetailView";
 import { Routes, Route, Navigate } from "react-router-dom";
+import LeaderboardView from "./components/LeaderboardView";
 
 export default function App() {
     const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -164,6 +165,7 @@ export default function App() {
                     }
                 />
                 <Route path="/decks/:deckId" element={<DeckDetailView token={token} userId={userId} />} />
+                <Route path="/leaderboard" element={<LeaderboardView />} />
             </Routes>
 
             <AuthModal
@@ -184,6 +186,8 @@ export default function App() {
                 onClose={() => setAuthOpen(false)}
                 onGuest={continueAsGuest}
             />
+
+
 
             {msg && (
                 <pre style={{ marginTop: 12, background: "#000", color: "#fff", padding: 12, borderRadius: 8 }}>

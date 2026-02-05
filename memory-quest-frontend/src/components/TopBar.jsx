@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export default function TopBar({ token, onOpenAuth, onLogout }) {
     const btn = { padding: "10px 12px", cursor: "pointer" };
@@ -15,6 +16,8 @@ export default function TopBar({ token, onOpenAuth, onLogout }) {
                     <>
                         <button style={btn} onClick={onOpenAuth}>Account</button>
                         <button style={btn} onClick={onLogout}>Logout</button>
+
+                        
                     </>
                 ) : (
                     <button style={btn} onClick={onOpenAuth}>Login</button>

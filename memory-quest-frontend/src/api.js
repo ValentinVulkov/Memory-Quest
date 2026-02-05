@@ -108,3 +108,53 @@ export async function fetchPublicCards(deckId) {
     if (!res.ok) throw new Error((data && data.error) || "Failed to load public cards");
     return data;
 }
+
+export async function startQuiz(token, deckId) {
+    const res = await fetch(`${API}/api/decks/${deckId}/quiz/start`, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to start quiz");
+    return data;
+}
+
+
+export async function submitQuizAnswer(token, resultId, is_correct) {
+    const res = await fetch(`${API}/api/quizzes/${resultId}/answer`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ is_correct }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Failed to submit answer");
+    return data;
+}
+
+export async function deleteCard(token, deckId, cardId) {
+    const res = await fetch(`${API}/api/decks/${deckId}/cards/${cardId}`, {
+        method: "DELETE",
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Delete card failed");
+    return data;
+}
+
+export async function fetchGlobalLeaderboard() {
+    const res = await fetch(`${API}/api/leaderboard/global`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Failed to load leaderboard");
+    return data.leaderboard ?? [];
+}
+

@@ -52,6 +52,8 @@ func main() {
 	r.GET("/api/decks/public/:id", api.GetPublicDeck)
 	r.GET("/api/decks/public/:id/cards", api.GetPublicCards)
 
+	r.GET("/api/leaderboard/global", api.GetGlobalLeaderboard)
+
 	auth := r.Group("/api")
 	auth.Use(middleware.AuthRequired())
 	{

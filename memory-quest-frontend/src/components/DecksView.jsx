@@ -45,6 +45,20 @@ export default function DecksView({
                     <button type="button" style={tabBtn(tab === "public")} onClick={() => setTab("public")}>
                         Public decks
                     </button>
+                    <Link
+                        to="/leaderboard"
+                        style={{
+                            padding: "8px 12px",
+                            background: "#2a2a2a",
+                            border: "1px solid #333",
+                            borderRadius: 8,
+                            color: "#fff",
+                            textDecoration: "none",
+                            marginLeft: "auto"
+                        }}
+                    >
+                        Leaderboard
+                    </Link>
                 </div>
 
                 {tab === "mine" && (
