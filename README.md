@@ -96,7 +96,7 @@ A MySQL database instance
 ## Installation
 
 git clone <your-repo-url>  
-cd memory-quest-backend  
+cd memory-quest
 go mod download  
 
 cd memory-quest-frontend  
