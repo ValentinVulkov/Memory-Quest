@@ -136,37 +136,41 @@ export default function App() {
     }
 
     return (
-        <div style={{ maxWidth: 900, margin: "40px auto" }}>
-            <TopBar
-                token={token}
-                onOpenAuth={() => setAuthOpen(true)}
-                onLogout={() => {
-                    localStorage.removeItem("token");
-                    setToken("");
-                    setGuest(true); // optional: go back to guest browsing
-                }}
-            />
-            <Routes>
-                <Route path="/" element={<Navigate to="/decks" replace />} />
-                <Route
-                    path="/decks"
-                    element={
-                        <DecksView
-                            token={token}
-                            authOk={authOk}
-                            decks={decks}
-                            publicDecks={publicDecks}
-                            deckTitle={deckTitle}
-                            setDeckTitle={setDeckTitle}
-                            deckDescription={deckDescription}
-                            setDeckDescription={setDeckDescription}
-                            onCreateDeck={addDeck}
-                        />
-                    }
+        <div className="app-shell">
+            <header className="app-header">
+                <TopBar
+                    token={token}
+                    onOpenAuth={() => setAuthOpen(true)}
+                    onLogout={() => {
+                        localStorage.removeItem("token");
+                        setToken("");
+                        setGuest(true); // optional: go back to guest browsing
+                    }}
                 />
-                <Route path="/decks/:deckId" element={<DeckDetailView token={token} userId={userId} />} />
-                <Route path="/leaderboard" element={<LeaderboardView />} />
-            </Routes>
+            </header>
+            <main className="app-main">
+                <Routes>
+                    <Route path="/" element={<Navigate to="/decks" replace />} />
+                    <Route
+                        path="/decks"
+                        element={
+                            <DecksView
+                                token={token}
+                                authOk={authOk}
+                                decks={decks}
+                                publicDecks={publicDecks}
+                                deckTitle={deckTitle}
+                                setDeckTitle={setDeckTitle}
+                                deckDescription={deckDescription}
+                                setDeckDescription={setDeckDescription}
+                                onCreateDeck={addDeck}
+                            />
+                        }
+                    />
+                    <Route path="/decks/:deckId" element={<DeckDetailView token={token} userId={userId} />} />
+                    <Route path="/leaderboard" element={<LeaderboardView />} />
+                </Routes>
+            </main>
 
             <AuthModal
                 open={authOpen}
@@ -190,7 +194,7 @@ export default function App() {
 
 
             {msg && (
-                <pre style={{ marginTop: 12, background: "#000", color: "#fff", padding: 12, borderRadius: 8 }}>
+                <pre className="app-msg">
           {msg}
         </pre>
             )}

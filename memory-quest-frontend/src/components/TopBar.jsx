@@ -1,29 +1,23 @@
 import React from "react";
-import { Link } from "react-router-dom";
 
 export default function TopBar({ token, onOpenAuth, onLogout }) {
-    const btn = { padding: "10px 12px", cursor: "pointer" };
-
     return (
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 18 }}>
-            <div>
-                <h1 style={{ margin: 10 }}>Memory Quest</h1>
-                <div style={{ margin:10, opacity: 0.7 }}>Decks</div>
+        <div className="topbar">
+            <div className="topbar-left">
+                <div className="brand">Memory Quest</div>
+                <div className="subtitle">Decks</div>
             </div>
 
-            <div style={{ display: "flex", gap: 8, margin: 15 }}>
+            <div className="topbar-right">
                 {token ? (
                     <>
-                        <button style={btn} onClick={onOpenAuth}>Account</button>
-                        <button style={btn} onClick={onLogout}>Logout</button>
-
-                        
+                        <button type="button" onClick={onOpenAuth}>Account</button>
+                        <button type="button" onClick={onLogout}>Logout</button>
                     </>
                 ) : (
-                    <button style={btn} onClick={onOpenAuth}>Login</button>
+                    <button type="button" onClick={onOpenAuth}>Login</button>
                 )}
             </div>
         </div>
     );
 }
-
