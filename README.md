@@ -118,8 +118,6 @@ DB_USER=root
 DB_PASSWORD=your_password  
 DB_NAME=memoryquest  
 
-# Auth  
-JWT_SECRET=replace_me  
 
 ---
 
@@ -155,27 +153,6 @@ npm run build
 
 ---
 
-## Troubleshooting
-
-1) Login always fails even with correct password  
-Make sure passwords are being hashed during registration and compared using the same hashing function during login.
-
-2) API returns 401 Unauthorized on protected routes  
-Verify the JWT is included in the Authorization header as `Bearer <token>` and that the token has not expired.
-
-3) Decks or cards not saving  
-Check database migrations / table structure and ensure the DB user has INSERT and UPDATE permissions.
-
-4) Slow responses from quiz endpoints  
-Look for missing database indexes on foreign keys like user_id or deck_id.
-
-5) Frontend shows network error  
-Confirm the frontend API base URL matches the backend port and protocol (http vs https).
-
-6) Web app works locally but not on deployment  
-Check environment variables in the hosting environment and ensure the database host is reachable from the server.
-
----
 
 ## Roadmap
 
